@@ -16,6 +16,10 @@ class BasicSQLTester(unittest.TestCase):
         self.cur.execute("create table contacts (id char(36) not null, date_entered datetime not null, first_name char(50), last_name char(50))")
         self.cur.execute("create table contacts_cstm (id_c char(36) not null, a_unique_id_c char(15) not null)")
 
+    def test_table(self):
+        s = SQL()
+        self.assertEqual(SQL.eval(SQL.TABLE('tbl')), 'tbl')
+
     def test_basic_select(self):
         s = SQL()
         expr = SQL.SELECT(
