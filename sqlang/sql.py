@@ -107,62 +107,57 @@ def validate_argument_count(element_count, args):
         return (element_count[0] == "*" or len(args) >= element_count[0]) and (element_count[-1] == "*" or len(args) <= element_count[-1])
     return False
 
-def sql_maker():
-    class SQL:
-        eval_funcs = {}
-        element_counts = {}
+class SQL:
+    eval_funcs = {}
+    element_counts = {}
 
+    @classmethod
+    def consume(cls, key, element_count, eval_func, token=Token):
         @classmethod
-        def consume(cls, key, element_count, eval_func, token=Token):
-            @classmethod
-            def getter(cls, *args):
-                if not validate_argument_count(element_count, args):
-                    raise Exception(f"Argument count wrong for {key}, {element_count}, {args}")
-                if element_count == 0:
-                    return token(key.upper(), None)
-                elif isinstance(element_count, list):
-                    return token(key.upper(), args[0])
-                else:
-                    return token(key.upper(), *args)
-            setattr(cls, key, getter)
-            cls.eval_funcs[key] = eval_func
-            cls.element_counts[key] = element_count
-
-        @classmethod
-        def tokenize(cls, item):
-            if item is None:
-                return "NULL"
-            if isinstance(item, str):
-                return f'"{item}"'
-            elif isinstance(item, int):
-                return f'{item}'
-            elif isinstance(item, datetime.datetime):
-                return f"'{item.year}-{item.month}-{item.day} {item.hours}:{item.minutes}:{item.seconds}'"
-            elif isinstance(item, datetime.date):
-                return f"'{item.year}-{item.month}-{item.day}'"
+        def getter(cls, *args):
+            if not validate_argument_count(element_count, args):
+                raise Exception(f"Argument count wrong for {key}, {element_count}, {args}")
+            if element_count == 0:
+                return token(key.upper(), None)
+            elif isinstance(element_count, list):
+                return token(key.upper(), args[0])
             else:
-                return item
+                return token(key.upper(), *args)
+        setattr(cls, key, getter)
+        cls.eval_funcs[key] = eval_func
+        cls.element_counts[key] = element_count
 
-        @classmethod
-        def eval(cls, item):
-            if hasattr(item, 'key') and item.key in cls.eval_funcs:
-                key, item = item.key, item.elements
-                if cls.element_counts[key] == 0:
-                    return cls.eval_funcs[key](cls.eval)
-                if item is None:
-                    return cls.eval_funcs[key](cls.eval)
-                if isinstance(cls.element_counts[key], tuple) or isinstance(cls.element_counts[key], int):
-                    return cls.eval_funcs[key](cls.eval, *item)
-                else:
-                    return cls.eval_funcs[key](cls.eval, item)
-            return SQL.tokenize(item)
+    @classmethod
+    def tokenize(cls, item):
+        if item is None:
+            return "NULL"
+        if isinstance(item, str):
+            return f'"{item}"'
+        elif isinstance(item, int):
+            return f'{item}'
+        elif isinstance(item, datetime.datetime):
+            return f"'{item.year}-{item.month}-{item.day} {item.hours}:{item.minutes}:{item.seconds}'"
+        elif isinstance(item, datetime.date):
+            return f"'{item.year}-{item.month}-{item.day}'"
+        else:
+            return item
 
-        def __call__(self, item):
-            return SQL.eval(item)
+    @classmethod
+    def eval(cls, item):
+        if hasattr(item, 'key') and item.key in cls.eval_funcs:
+            key, item = item.key, item.elements
+            if cls.element_counts[key] == 0:
+                return cls.eval_funcs[key](cls.eval)
+            if item is None:
+                return cls.eval_funcs[key](cls.eval)
+            if isinstance(cls.element_counts[key], tuple) or isinstance(cls.element_counts[key], int):
+                return cls.eval_funcs[key](cls.eval, *item)
+            else:
+                return cls.eval_funcs[key](cls.eval, item)
+        return SQL.tokenize(item)
 
-    return SQL
-
-SQL = sql_maker()
+    def __call__(self, item):
+        return SQL.eval(item)
 
 elements = {
     'TABLE': (1, lambda r, out: out, Table),
