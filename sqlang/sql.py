@@ -28,6 +28,7 @@ class Table(Token):
         else:
             return Token('FIELD', f"{self.elements[0]}.{item}")
 
+
 class Alias(Token):
     def __init__(self, *args):
         super().__init__('ALIAS', args[1], args[2])
@@ -67,26 +68,6 @@ def update_expr(eval, tbl, js, sets, where, group, order):
     if order:
         q = f"{q} {eval(order)} "
     return q
-
-
-
-def element_count(element):
-    return elements[element][0]
-
-def substitution_rule(element):
-    return elements[element][1]
-
-def token_handler(element):
-    if len(elements[element]) > 2:
-        return elements[element][2]
-    else:
-        return Token
-
-def is_positional_args(element):
-    return isinstance(element_count(element), int) or isinstance(element_count(element), tuple)
-
-def matches_rule(item):
-    return hasattr(item, 'key') and token_handler(item.key) == item.__class__
 
 
 def cls_mth_maker(key):
