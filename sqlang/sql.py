@@ -1,7 +1,113 @@
-# int = exactly this number of arguments
-# tuple = between n1 and n2 args, accept as numbered params
-#  empty list = accept any number of arguments, accept as 1 tuple/list
 import datetime
+from inspect import Signature
+
+def create_token_set():
+    return {}
+
+def token_set(tset={}, *tokens):
+    for t in tokens:
+        k, v = list(t.items())[0]
+        tset[k] = v
+    return tset
+
+def create_token(key, *evaluations):
+    return {key: evaluations}
+
+def create_evaluation(tokens, key, eval_func):
+    tokens[key] = [eval_func, *tokens[key]]
+    return tokens
+
+def evaluate_token(eval, tokens, key, args):
+    for func in tokens[key]:
+        res = func(eval, *args)
+        if res:
+            return res
+    raise ValueError("No evaluators work")
+
+def bind_token(attr, *args):
+    return (attr, *args)
+
+def token_key(obj):
+    return obj[0]
+
+def token_arguments(obj):
+    return obj[1:] if len(obj) > 1 else tuple()
+
+def is_token(tokens, t):
+    return isinstance(t, tuple) and len(t) > 0 and token_key(t) in tokens
+
+class MakeToken:
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, *args):
+        return (self.name, *args)
+
+def BUILD_SQL(tokens):
+    class S:
+        def __getattr__(self, attr):
+            if attr in tokens:
+                return MakeToken(attr)
+            raise AttributeError(f"Attribute {attr} doesn't exist on this {self}")
+
+        def __call__(self, obj):
+            return self.__class__.evaluate(obj)
+
+        @classmethod
+        def evaluate(cls, obj):
+            if is_token(tokens, obj):
+                return evaluate_token(cls.evaluate, tokens, token_key(obj), token_arguments(obj))
+            else:
+                return cls.tokenize(obj)
+        
+        @classmethod
+        def tokenize(cls, item):
+            if item is None:
+                return "NULL"
+            if isinstance(item, str):
+                return f'"{item}"'
+            elif isinstance(item, int):
+                return f'{item}'
+            elif isinstance(item, datetime.datetime):
+                return f"'{item.year}-{item.month}-{item.day} {item.hours}:{item.minutes}:{item.seconds}'"
+            elif isinstance(item, datetime.date):
+                return f"'{item.year}-{item.month}-{item.day}'"
+            else:
+                return item
+
+    sql = S()
+    return sql
+
+def evaluate_from(evaluate, *args):
+    return ' '.join([evaluate(a) for a in args])
+
+def evaluate_select(evaluate, *args):
+    if token_key(args[0]) == 'DISTINCT':
+        offset = 1
+        val = f"SELECT {evaluate(args[0])}"
+    else:
+        offset = 0
+        val = f"SELECT"
+    # fields/subqueries
+    val = " ".join([val, ", ".join([evaluate(x) for x in args[0+offest]])])
+    offset += 1
+    # from, group, order
+    for arg in args[offset]:
+        val = " ".join([val] + [evaluate(a) for a in args[offset:]])
+    return val
+
+tokens = token_set(
+    create_token_set(),
+    create_token(
+        'TABLE', 
+        lambda evaluate, *args: f"{args[0]}{' '.join([' AS', args[1]]) if len(args) == 2 else ''}"
+    ),
+    create_token('FROM', evaluate_from),
+    create_token('SELECT', evaluate_select)
+)
+
+# Legacy Implementation
+###################################
 
 class Token:
     def __init__(self, key, *args):
