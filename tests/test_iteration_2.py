@@ -20,38 +20,32 @@ class BasicSQLTester(unittest.TestCase):
         s = BUILD_SQL(tokens)
         self.assertEqual(s(s.TABLE('tbl')), 'tbl')
 
-#    def test_basic_select(self):
-#        s = SQL()
-#        expr = SQL.SELECT(
-#            SQL.FIELD('uid'),
-#            SQL.TABLE('meeting'),
-#            None, #joins
-#            SQL.WHERE(SQL.EQ(SQL.FIELD('home'), 'BOS')),
-#            None,
-#            None
-#        )
-#        self.cur.execute(s(expr))
-#
-#
-#        expr = SQL.SELECT(
-#            [SQL.FIELD('team.name'), SQL.COUNT(SQL.FIELD('meeting.uid'))],
-#            SQL.TABLE('meeting'),
-#            SQL.JOINS(
-#                SQL.JOIN(
-#                    SQL.TABLE('team'), 
-#                    SQL.AND(
-#                        SQL.EQ(SQL.FIELD('meeting.home'), SQL.FIELD('team.name')), 
-#                        SQL.GT('game_date', datetime.date(2014, 5, 10))
-#                    )
-#                )
-#            ),
-#            SQL.WHERE(SQL.NOT(SQL.LIKE(SQL.FIELD('team.uid'), '%PHI%'))),
-#            None,
-#            SQL.ORDER_BY(SQL.FIELD('meeting.uid'), 'desc')
-#        )
-#
-#        self.cur.execute(s(expr))
-#
+    def test_basic_select(self):
+        s = BUILD_SQL(tokens)
+        expr = s(s.SELECT(
+            s.FIELD('uid'),
+            s.FROM(s.TABLE('meeting')),
+            s.WHERE(s.EQ(s.FIELD('home'), 'BOS')),
+        ))
+        self.cur.execute(expr)
+
+
+        expr = s(s.SELECT(
+            [s.FIELD('team.name'), s.COUNT(s.FIELD('meeting.uid'))],
+            s.FROM(
+                s.TABLE('meeting'),
+                s.JOIN(
+                    s.TABLE('team'), 
+                    s.AND(
+                        s.EQ(s.FIELD('meeting.home'), s.FIELD('team.name')), 
+                        s.GT('game_date', datetime.date(2014, 5, 10))
+                    )
+                )
+            ),
+            s.WHERE(s.NOT(s.LIKE(s.FIELD('team.uid'), '%PHI%'))),
+            s.ORDER_BY(s.FIELD('meeting.uid'), s.DESC())
+        ))
+
 #    def test_access_of_table(self):
 #        s = SQL()
 #        t = SQL.ALIAS(SQL.TABLE('meeting'), 'm_tbl')
@@ -128,6 +122,3 @@ class BasicSQLTester(unittest.TestCase):
 #        )
 #        self.cur.execute(s(expr))
 #
-#
-#
-#                    
