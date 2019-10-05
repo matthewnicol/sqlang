@@ -100,6 +100,13 @@ def evaluate_select(evaluate, *args):
         val = " ".join([val] + [evaluate(arg)])
     return val
 
+def evaluate_insert(evaluate, *args):
+    val = f"INSERT INTO {evaluate(args[0])}"
+    for a in args[1:]:
+        val += " " + evaluate(a)
+    return val
+        
+
 def evaluate_field(evaluate, *args):
     if len(args) == 1 and is_string(args[0]):
         return args[0]
@@ -132,7 +139,9 @@ tokens = token_list(
     ),
     token_list_item('FROM', evaluate_from),
     token_list_item('SELECT', evaluate_select),
+    token_list_item('INSERT', evaluate_insert),
     token_list_item('FIELD', evaluate_field),
+    token_list_item('SET', lambda r, *args: f"SET " + (", ".join([r(a) for a in args]))),
     token_list_item('JOIN', lambda r, *args: f"INNER JOIN {r(args[0])} ON {r(args[1])} "),
     token_list_item('LEFT_JOIN', lambda r, *args: f"LEFT JOIN {r(args[0])} ON {r(args[1])} "),
     token_list_item('WHERE', lambda r, *args: f"WHERE {r(args[0])} "),
