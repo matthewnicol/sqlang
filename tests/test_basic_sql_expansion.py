@@ -1,5 +1,5 @@
 import unittest
-from sqlang.sql import BUILD_SQL, tokens
+from sqlang.sql import SQL, tokens
 import pymysql
 import datetime
 
@@ -18,11 +18,17 @@ class BasicSQLTester(unittest.TestCase):
         self.con.commit()
 
     def test_table(self):
-        s = BUILD_SQL(tokens)
+        s = SQL(tokens)
         self.assertEqual(s(s.TABLE('tbl')), 'tbl')
 
+    def test_field(self):
+        s = SQL(tokens)
+        self.assertEqual(s(s.FIELD(s.TABLE('testing'), 'test')), "testing.test")
+        self.assertEqual(s(s.FIELD(s.TABLE('testing', 'alias'), 'test')), "alias.test")
+        self.assertEqual(s(s.FIELD('testing', 'test')), 'testing.test')
+
     def test_basic_select(self):
-        s = BUILD_SQL(tokens)
+        s = SQL(tokens)
         expr = s(s.SELECT(
             s.FIELD('uid'),
             s.FROM(s.TABLE('meeting')),
@@ -48,7 +54,7 @@ class BasicSQLTester(unittest.TestCase):
         ))
 
     def test_basic_insert(self):
-        s = BUILD_SQL(tokens)
+        s = SQL(tokens)
         meeting = s.TABLE('meeting')
         sql = s(
             s.INSERT(

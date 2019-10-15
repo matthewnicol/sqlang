@@ -1,5 +1,4 @@
 import datetime
-from inspect import Signature
 
 def create_token_list():
     return {}
@@ -44,7 +43,7 @@ def bound_token_maker(name):
         return bind_token(name, *args)
     return func
 
-def BUILD_SQL(tokens):
+def SQL(tokens):
     class S:
         def __getattr__(self, attr):
             if attr in tokens:
@@ -115,7 +114,7 @@ def evaluate_insert(evaluate, *args):
 
 def evaluate_field(evaluate, *args):
     if is_string(args[0]):
-        val = evaluate(args[0])
+        val = args[0]
         if len(args) == 1:
             return val
     elif is_token(args[0]) and token_key(args[0]) in ('TABLE', 'SELECT'):
@@ -139,6 +138,7 @@ tokens = token_list(
     token_list_item('INSERT', evaluate_insert),
     token_list_item('FIELD', evaluate_field),
     token_list_item('SET', lambda r, *args: f"SET " + (", ".join([r(a) for a in args]))),
+    token_list_item('VALUES', lambda r, *args: f"VALUES " + (", ".join([r(a) for a in args]))),
     token_list_item('JOIN', lambda r, *args: f"INNER JOIN {r(args[0])} ON {r(args[1])} "),
     token_list_item('LEFT_JOIN', lambda r, *args: f"LEFT JOIN {r(args[0])} ON {r(args[1])} "),
     token_list_item('WHERE', lambda r, *args: f"WHERE {r(args[0])} "),
@@ -158,6 +158,7 @@ tokens = token_list(
     token_list_item('RAND', lambda r, *args: "RAND()"),
     token_list_item('DESC', lambda r, *args: "DESC"),
     token_list_item('ASC', lambda r, *args: "ASC"),
+    token_list_item('IGNORE', lambda r, *args: "IGNORE"),
     token_list_item('MULTIPLY', lambda r, *args: f' * '.join([r[a] for a in args])),
     token_list_item('ADD', lambda r, *args: f' + '.join([r[a] for a in args])),
     token_list_item('SUB', lambda r, *args: f' - '.join([r[a] for a in args])),
