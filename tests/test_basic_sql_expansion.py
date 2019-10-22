@@ -25,7 +25,8 @@ class BasicSQLTester(unittest.TestCase):
         s = SQL(tokens)
         self.assertEqual(s(s.FIELD(s.TABLE('testing'), 'test')), "testing.test")
         self.assertEqual(s(s.FIELD(s.TABLE('testing', 'alias'), 'test')), "alias.test")
-        self.assertEqual(s(s.FIELD('testing', 'test')), 'testing.test')
+        self.assertEqual(s(s.FIELD('testing', 'test')), 'testing AS test')
+        self.assertEqual(s(s.FIELD(s.TABLE('testing', 'alias'), 'test', 't')), "alias.test AS t")
 
     def test_basic_select(self):
         s = SQL(tokens)

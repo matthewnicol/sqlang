@@ -149,6 +149,21 @@ def evaluate_field(evaluate, *args):
         return f"{args[0]} AS {args[1]}"
     raise ValueError('Error parsing')
 
+#def evaluate_field(evaluate, *args):
+#    if is_string(args[0]):
+#        val = args[0]
+#        if len(args) == 1:
+#            return val
+#    elif is_token(args[0]) and token_key(args[0]) in ('TABLE', 'SELECT'):
+#        if len(token_arguments(args[0])) == 1:
+#            val = token_arguments(args[0])[0]
+#        else:
+#            val = token_arguments(args[0])[1]
+#    val = f"{val}.{args[1]}"
+#    if len(args) == 3:
+#        val = f"{val} AS {args[2]}"
+#    return val
+
 tokens = token_list(
     create_token_list(),
     token_list_item(
