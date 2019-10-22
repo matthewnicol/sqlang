@@ -1,5 +1,4 @@
 import datetime
-from inspect import Signature
 
 def create_token_list():
     return {}
@@ -39,7 +38,7 @@ def is_token(obj):
     return isinstance(obj, tuple) and len(obj) > 0 and token_key_part(obj).startswith("TOKEN:")
 
 def is_string(obj):
-    return str(obj)
+    return isinstance(obj, str)
 
 def bound_expression_maker(name):
     def func(*args):
@@ -51,7 +50,7 @@ def bound_token_maker(name):
         return bind_token(name, *args)
     return func
 
-def BUILD_SQL(tokens, expressions={}):
+def SQL(tokens):
     class S:
         def __getattr__(self, attr):
             if attr in tokens:
@@ -108,8 +107,14 @@ def evaluate_select(evaluate, *args):
     return val
 
 def evaluate_insert(evaluate, *args):
-    val = f"INSERT INTO {evaluate(args[0])}"
-    for a in args[1:]:
+    if is_token(args[0]) and token_key(args[0]) == 'IGNORE':
+        val = "INSERT IGNORE INTO"
+        offset = 1
+    else:
+        val = "INSERT INTO"
+        offset = 0
+    val = f"{val} {evaluate(args[offset])}"
+    for a in args[offset+1:]:
         val += " " + evaluate(a)
     return val
 
@@ -156,6 +161,7 @@ tokens = token_list(
     token_list_item('INSERT', evaluate_insert),
     token_list_item('FIELD', evaluate_field),
     token_list_item('SET', lambda r, *args: f"SET " + (", ".join([r(a) for a in args]))),
+    token_list_item('VALUES', lambda r, *args: f"VALUES " + (", ".join([r(a) for a in args]))),
     token_list_item('JOIN', lambda r, *args: f"INNER JOIN {r(args[0])} ON {r(args[1])} "),
     token_list_item('LEFT_JOIN', lambda r, *args: f"LEFT JOIN {r(args[0])} ON {r(args[1])} "),
     token_list_item('WHERE', lambda r, *args: f"WHERE {r(args[0])} "),
@@ -175,6 +181,7 @@ tokens = token_list(
     token_list_item('RAND', lambda r, *args: "RAND()"),
     token_list_item('DESC', lambda r, *args: "DESC"),
     token_list_item('ASC', lambda r, *args: "ASC"),
+    token_list_item('IGNORE', lambda r, *args: "IGNORE"),
     token_list_item('MULTIPLY', lambda r, *args: f' * '.join([r[a] for a in args])),
     token_list_item('ADD', lambda r, *args: f' + '.join([r[a] for a in args])),
     token_list_item('SUB', lambda r, *args: f' - '.join([r[a] for a in args])),
@@ -187,4 +194,3 @@ tokens = token_list(
     token_list_item('TRIM', lambda r, *args: f"TRIM({r(args[0])})"),
     token_list_item('GROUP_BY', lambda r, *args: f"GROUP BY {', '.join([r(a) for a in args])}"),
 )
-
